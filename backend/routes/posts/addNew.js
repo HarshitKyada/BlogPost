@@ -78,7 +78,7 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const path = require("path");
 const AuthChecker = require("../../component/common/AuthChecker");
-const Main = require("../../models/Main"); // Assuming the schema is in models/Main.js
+const Main = require("../../models/BlogPost"); // Assuming the schema is in models/Main.js
 
 const router = express.Router();
 
