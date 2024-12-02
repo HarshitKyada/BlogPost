@@ -5,14 +5,21 @@ const helmet = require("helmet");
 const dotenv = require("dotenv");
 const ownerLogin = require("./routes/owner/login");
 const ownerSignup = require("./routes/owner/signUp");
-const addNew = require("./routes/posts/addNew");    
+const addNew = require("./routes/posts/addNew");
+const sync = require("./routes/owner/sync");
+const getPosts = require("./routes/posts/getPost");
 
 dotenv.config();
 
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "token"],
+  })
+);
 app.use(express.json());
 
 try {
@@ -25,7 +32,9 @@ try {
 
 app.use("/", ownerLogin);
 app.use("/", ownerSignup);
-app.use("/post", addNew);
+app.use("/", sync);
+app.use("/", addNew);
+app.use("/", getPosts);
 app.listen(process.env.PORT || 5000, () => {
   console.log(`Server is running on port ${process.env.PORT}`);
 });

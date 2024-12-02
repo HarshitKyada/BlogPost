@@ -1,31 +1,115 @@
 const express = require("express");
-const Main = require("../../models/BlogPost"); // Assuming the schema is in models/Main.js
-const AuthChecker = require("../../component/common/AuthChecker");
+const fs = require("fs");
+const path = require("path");
+const BlogPost = require("../../models/BlogPost");
 
 const router = express.Router();
 
-router.get("/getbyid/:id/:blogId", async (req, res) => {
-  const { token } = req.headers;
-  const { id, blogId } = req.params;
+router.get("/getblog/:id?", async (req, res) => {
+  const blogId = req.params.id;
+  if (blogId) {
+    try {
+      const blogPost = await BlogPost.findById(req.params.id);
 
+      if (!blogPost) {
+        return res.status(404).json({ error: "Blog post not found" });
+      }
+
+      // Add binary data to contentBlocks
+      blogPost.contentBlocks = await Promise.all(
+        blogPost.contentBlocks.map(async (block) => {
+          if (block.type === "image") {
+            const filePath = path.resolve(
+              __dirname,
+              "../../uploads",
+              path.basename(block.imageUrl)
+            );
+
+            if (fs.existsSync(filePath)) {
+              try {
+                const imageBuffer = fs.readFileSync(filePath);
+                block.binaryData = imageBuffer.toString("base64");
+              } catch (error) {
+                console.error("Error reading file:", error);
+                block.binaryData = null;
+              }
+            } else {
+              block.binaryData = null;
+            }
+          }
+          return block;
+        })
+      );
+
+      // Add binary data for featuredImage
+      if (blogPost.featuredImage) {
+        const featuredImagePath = path.resolve(
+          __dirname,
+          "../../uploads",
+          path.basename(blogPost.featuredImage)
+        );
+
+        if (fs.existsSync(featuredImagePath)) {
+          try {
+            const featuredImageBuffer = fs.readFileSync(featuredImagePath);
+            blogPost.featuredImageBinary =
+              featuredImageBuffer.toString("base64");
+          } catch (error) {
+            console.error("Error reading featured image:", error);
+            blogPost.featuredImageBinary = null;
+          }
+        } else {
+          blogPost.featuredImageBinary = null;
+        }
+      }
+
+      res.json({
+        data: blogPost,
+        success: true,
+        message: "Blog post fetched successfully",
+      });
+    } catch (error) {
+      console.error("Error fetching blog post:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
   try {
-    // Check if the user is authorized
-    const isAuth = await AuthChecker(token, id);
-    if (!isAuth) {
-      return res.status(403).send({ error: "Unauthorized access" });
+    const blogPosts = await BlogPost.find();
+
+    if (!blogPosts || blogPosts.length === 0) {
+      return res.status(404).json({ error: "No blog posts found" });
     }
 
-    // Fetch a specific document based on blogId
-    const document = await Main.findOne({ blogId });
+    const processedPosts = await Promise.all(
+      blogPosts.map(async (post) => {
+        if (post.featuredImage) {
+          const featuredImagePath = path.resolve(post.featuredImage);
 
-    if (!document) {
-      return res.status(404).send({ error: "Blog not found" });
-    }
+          if (fs.existsSync(featuredImagePath)) {
+            try {
+              const featuredImageBuffer = fs.readFileSync(featuredImagePath);
+              post.featuredImageBinary = featuredImageBuffer.toString("base64");
+            } catch (error) {
+              console.error("Error reading featured image:", error);
+              post.featuredImageBinary = null;
+            }
+          } else {
+            post.featuredImageBinary = null;
+          }
+        }
+        return post;
+      })
+    );
 
-    res.status(200).send({ data: document });
+    return res.json({
+      data: processedPosts,
+      success: true,
+      message: "All blog posts fetched successfully",
+    });
   } catch (error) {
-    console.error("Error fetching document:", error);
-    res.status(500).send({ error: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ error: error.message || "Internal server error" });
   }
 });
 

@@ -1,0 +1,42 @@
+{
+  "data": {
+    "success": true,
+    "message": "Login successful, Scarlet Pickett",
+    "user": {
+      "name": "Scarlet Pickett",
+      "email": "mypepo@mailinator.com",
+      "token": "c67ba2436191015f27601002e50fdc7800dbf5453613c7250417748e2bf2da0a5315688b4e9d9d274ccb7598cb599cba5f69dd10383f2e83b067d5e9029baad0",
+      "uniqueId": "0c22c3dd-84c2-473f-b1ca-c0cf5fad8e70"
+    }
+  },
+  "status": 200,
+  "statusText": "OK",
+  "headers": {
+    "content-length": "317",
+    "content-type": "application/json; charset=utf-8"
+  },
+  "config": {
+    "transitional": {
+      "silentJSONParsing": true,
+      "forcedJSONParsing": true,
+      "clarifyTimeoutError": false
+    },
+    "adapter": ["xhr", "http", "fetch"],
+    "transformRequest": [null],
+    "transformResponse": [null],
+    "timeout": 0,
+    "xsrfCookieName": "XSRF-TOKEN",
+    "xsrfHeaderName": "X-XSRF-TOKEN",
+    "maxContentLength": -1,
+    "maxBodyLength": -1,
+    "env": {},
+    "headers": {
+      "Accept": "application/json, text/plain, */*",
+      "Content-Type": "application/json"
+    },
+    "method": "post",
+    "url": "http://localhost:5050/owner/login",
+    "data": "{\"email\":\"mypepo@mailinator.com\",\"password\":\"Pa$$w0rd!\"}"
+  },
+  "request": {}
+}

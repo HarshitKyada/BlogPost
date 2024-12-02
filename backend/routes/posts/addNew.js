@@ -1,156 +1,79 @@
-// const express = require("express");
-// const multer = require("multer");
-// const path = require("path");
-// const AuthChecker = require("../../component/common/AuthChecker");
-// const BlogPost = require("../../models/BlogPost");
-
-// const router = express.Router();
-
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "uploads/");
-//   },
-//   filename: (req, file, cb) => {
-//     cb(null, Date.now() + path.extname(file.originalname));
-//   },
-// });
-
-// const upload = multer({
-//   storage,
-//   limits: { fileSize: 1024 * 1024 * 5 },
-// });
-
-// router.post(
-//   "/addnew/:id",
-//   upload.fields([
-//     { name: "mainImage", maxCount: 1 },
-//     { name: "contentImages" },
-//   ]),
-//   async (req, res) => {
-//     const { token } = req.headers;
-//     const { id } = req.params;
-
-//     try {
-//       const isAuth = await AuthChecker(token, id);
-//       if (!isAuth) {
-//         return res.status(403).send({ error: "Unauthorized access" });
-//       }
-
-//       const { mainTitle, title, content } = req.body;
-//       const mainImageFile = req.files["mainImage"]?.[0];
-//       const contentImages = req.files["contentImages"];
-
-//       if (!mainTitle || !title || !content) {
-//         return res.status(400).send({ error: "All fields are required" });
-//       }
-
-//       const parsedContent = JSON.parse(content).map((item, index) => {
-//         if (item.type === "image") {
-//           return {
-//             ...item,
-//             value: contentImages?.[index]?.path || null,
-//           };
-//         }
-//         return item;
-//       });
-
-//       const newDocument = new BlogPost({
-//         mainTitle,
-//         mainImage: mainImageFile?.path || null,
-//         title,
-//         content: parsedContent,
-//       });
-
-//       await newDocument.save();
-//       res
-//         .status(201)
-//         .send({ message: "Document added successfully", data: newDocument });
-//     } catch (error) {
-//       console.error("Error adding document:", error);
-//       res.status(500).send({ error: "Internal Server Error" });
-//     }
-//   }
-// );
-
-// module.exports = router;
 const express = require("express");
-const mongoose = require("mongoose");
 const multer = require("multer");
 const path = require("path");
-const AuthChecker = require("../../component/common/AuthChecker");
-const Main = require("../../models/BlogPost"); // Assuming the schema is in models/Main.js
+const BlogPost = require("../../models/BlogPost");
+const fs = require("fs");
 
 const router = express.Router();
 
-// Configure Multer for file uploads
+const uploadsDir = path.join(__dirname, "../../uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Define upload folder
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Use timestamp for unique filenames
+    cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 1024 * 1024 * 5 }, // 5MB file size limit
-});
+const upload = multer({ storage });
 
 router.post(
-  "/addnew/:id",
+  "/create",
   upload.fields([
-    { name: "mainImage", maxCount: 1 },
-    { name: "contentImages" }, // For content images
+    { name: "featuredImage", maxCount: 1 },
+    { name: "contentImages", maxCount: 10 },
   ]),
   async (req, res) => {
-    const { token } = req.headers;
-    const { id } = req.params;
-    const { blogId, mainTitle, title, content } = req.body;
-
     try {
-      const isAuth = await AuthChecker(token, id);
-      if (!isAuth) {
-        return res.status(403).send({ error: "Unauthorized access" });
-      }
+      const { title, contentBlocks } = req.body;
 
-      // Validate inputs
-      if (!blogId || !mainTitle || !title || !content) {
-        return res.status(400).send({ error: "All fields are required" });
-      }
+      const featuredImage = req.files["featuredImage"]?.[0]?.path;
 
-      const mainImageFile = req.files["mainImage"]?.[0]; // Access uploaded mainImage
-      const contentImages = req.files["contentImages"]; // Access uploaded content images
+      let parsedContentBlocks = [];
+      if (contentBlocks) {
+        try {
+          parsedContentBlocks = JSON.parse(contentBlocks);
 
-      // Parse and replace image files in content
-      const parsedContent = JSON.parse(content).map((item, index) => {
-        if (item.type === "image") {
-          return {
-            ...item,
-            value: contentImages?.[index]?.path || null,
-          };
+          const contentImages = req.files["contentImages"] || [];
+          let imageIndex = 0;
+          parsedContentBlocks = parsedContentBlocks.map((block) => {
+            if (block.type === "image" && contentImages[imageIndex]) {
+              block.imageUrl = contentImages[imageIndex].path;
+              imageIndex++;
+            }
+            return block;
+          });
+        } catch (error) {
+          return res.status(400).json({
+            error: "Invalid contentBlocks data: must be a valid JSON string",
+          });
         }
-        return item;
-      });
+      }
 
-      // Create and save the new document
-      const newDocument = new Main({
-        blogId, // Set the unique blogId
-        mainTitle,
-        mainImage: mainImageFile?.path || null,
+      const newBlogPost = new BlogPost({
         title,
-        content: parsedContent,
+        featuredImage,
+        contentBlocks: parsedContentBlocks,
       });
 
-      await newDocument.save();
-      res
-        .status(201)
-        .send({ message: "Document added successfully", data: newDocument });
+      await newBlogPost.save();
+      res.status(201).json({
+        message: "Blog post created successfully",
+        data: newBlogPost,
+      });
     } catch (error) {
-      console.error("Error adding document:", error);
-      res.status(500).send({ error: "Internal Server Error" });
+      console.error("Error creating blog post:", error.message);
+      res.status(500).json({ error: "Internal server error" });
     }
   }
 );
+
+// Serve static files for images
+router.use("/uploads", express.static(path.join(__dirname, "../../uploads")));
 
 module.exports = router;
