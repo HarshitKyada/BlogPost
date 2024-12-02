@@ -79,6 +79,7 @@ const BlogPostDetail = ({ id }) => {
             case "affiliate-link":
               return (
                 <a
+                
                   key={block._id}
                   href={block.link}
                   target="_blank"

@@ -68,11 +68,15 @@ const Login = () => {
         localStorage.setItem("uniqueId", uniqueId);
         router.push(`/addPost/${uniqueId}`);
       } catch (error) {
-        console.log('error', error)
+        console.log("error", error);
       }
     } else {
       console.log("Form has errors.");
     }
+  };
+
+  const goToSignup = () => {
+    router.push("/signup");
   };
 
   return (
@@ -135,7 +139,9 @@ const Login = () => {
           </button>
         </form>
         <div className="mt-4">
-          <button className="text-blue-500">Not a user? Sign up</button>
+          <button className="text-blue-500" onClick={goToSignup}>
+            Not a user? Sign up
+          </button>
         </div>
       </div>
     </div>

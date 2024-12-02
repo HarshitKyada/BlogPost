@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { validateField } from "./common/Validation";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,8 @@ const Login = () => {
     password: "",
   });
   const [errors, setErrors] = useState({});
+
+  const router = useRouter();
   const handleChange = (e) => {
     const { name, value } = e.target;
     const fieldValue = value;
@@ -23,7 +26,6 @@ const Login = () => {
     setFormData((prev) => ({ ...prev, [name]: fieldValue }));
   };
 
-  console.log("process.env.BE_MAIN_URL", process.env.BE_MAIN_URL);
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -53,6 +55,10 @@ const Login = () => {
     } else {
       console.log("Form has errors.");
     }
+  };
+
+  const goToLogin = () => {
+    router.push("/");
   };
 
   return (
@@ -117,7 +123,9 @@ const Login = () => {
           </button>
         </form>
         <div className="mt-4">
-          <button className="text-blue-500">Already a user? Login</button>
+          <button className="text-blue-500" onClick={goToLogin}>
+            Already a user? Login
+          </button>
         </div>
       </div>
     </div>

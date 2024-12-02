@@ -7,9 +7,10 @@ const router = express.Router();
 
 router.get("/getblog/:id?", async (req, res) => {
   const blogId = req.params.id;
+
   if (blogId) {
     try {
-      const blogPost = await BlogPost.findById(req.params.id);
+      const blogPost = await BlogPost.findById(blogId);
 
       if (!blogPost) {
         return res.status(404).json({ error: "Blog post not found" });
@@ -63,53 +64,59 @@ router.get("/getblog/:id?", async (req, res) => {
         }
       }
 
-      res.json({
+      return res.json({
         data: blogPost,
         success: true,
         message: "Blog post fetched successfully",
       });
     } catch (error) {
       console.error("Error fetching blog post:", error);
-      res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Internal server error" });
     }
-  }
-  try {
-    const blogPosts = await BlogPost.find();
+  } else {
+    try {
+      const blogPosts = await BlogPost.find();
 
-    if (!blogPosts || blogPosts.length === 0) {
-      return res.status(404).json({ error: "No blog posts found" });
-    }
+      if (!blogPosts || blogPosts.length === 0) {
+        return res.status(404).json({ error: "No blog posts found" });
+      }
 
-    const processedPosts = await Promise.all(
-      blogPosts.map(async (post) => {
-        if (post.featuredImage) {
-          const featuredImagePath = path.resolve(post.featuredImage);
+      const processedPosts = await Promise.all(
+        blogPosts.map(async (post) => {
+          if (post.featuredImage) {
+            const featuredImagePath = path.resolve(
+              __dirname,
+              "../../uploads",
+              path.basename(post.featuredImage)
+            );
 
-          if (fs.existsSync(featuredImagePath)) {
-            try {
-              const featuredImageBuffer = fs.readFileSync(featuredImagePath);
-              post.featuredImageBinary = featuredImageBuffer.toString("base64");
-            } catch (error) {
-              console.error("Error reading featured image:", error);
+            if (fs.existsSync(featuredImagePath)) {
+              try {
+                const featuredImageBuffer = fs.readFileSync(featuredImagePath);
+                post.featuredImageBinary =
+                  featuredImageBuffer.toString("base64");
+              } catch (error) {
+                console.error("Error reading featured image:", error);
+                post.featuredImageBinary = null;
+              }
+            } else {
               post.featuredImageBinary = null;
             }
-          } else {
-            post.featuredImageBinary = null;
           }
-        }
-        return post;
-      })
-    );
+          return post;
+        })
+      );
 
-    return res.json({
-      data: processedPosts,
-      success: true,
-      message: "All blog posts fetched successfully",
-    });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ error: error.message || "Internal server error" });
+      return res.json({
+        data: processedPosts,
+        success: true,
+        message: "All blog posts fetched successfully",
+      });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ error: error.message || "Internal server error" });
+    }
   }
 });
 
