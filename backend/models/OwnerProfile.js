@@ -19,10 +19,6 @@ const ownerProfileSchema = new mongoose.Schema({
   token: {
     type: String,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
 });
 
 const OwnerProfile =

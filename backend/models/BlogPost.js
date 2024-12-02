@@ -1,40 +1,32 @@
 const mongoose = require("mongoose");
+const { Schema } = mongoose;
 
-const ContentSchema = new mongoose.Schema({
+const contentBlockSchema = new Schema({
   type: {
     type: String,
-    required: true,
-    enum: ["heading", "image", "paragraph"],
-  },
-  value: {
-    type: mongoose.Schema.Types.Mixed,
-    required: true,
-  },
-});
-
-const MainSchema = new mongoose.Schema({
-  mainTitle: {
-    type: String,
-    required: true,
-  },
-  mainImage: {
-    type: String,
-    required: true,
-  },
-  title: {
-    type: String,
+    enum: ["heading", "paragraph", "image", "affiliate-link"],
     required: true,
   },
   content: {
-    type: [ContentSchema], 
-    validate: [
-      (val) => val.length > 0,
-      "Content array must have at least one item.",
-    ],
+    type: String,
+    required: function () {
+      // Require content only for "heading" and "paragraph" types
+      return this.type === "heading" || this.type === "paragraph";
+    },
   },
+  imageUrl: String, // For images
+  binaryData: String, // For images
+  link: String, // For affiliate link
 });
 
-const BlogPost =
-  mongoose.models.BlogPost || mongoose.model("BlogPost", MainSchema);
+const blogPostSchema = new Schema({
+  title: { type: String, required: true },
+  featuredImage: { type: String, required: true }, // URL to the uploaded image
+  featuredImageBinary: { type: String },
+  contentBlocks: [contentBlockSchema],
+  createdAt: { type: Date, default: Date.now },
+});
+
+const BlogPost = mongoose.model("BlogPost", blogPostSchema);
 
 module.exports = BlogPost;

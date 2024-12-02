@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { validateField } from "./common/Validation";
+import axios from "axios";
+import { useRouter } from "next/navigation"; // Import useRouter
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -10,6 +12,8 @@ const Login = () => {
     terms: false,
   });
   const [errors, setErrors] = useState({});
+
+  const router = useRouter();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -23,12 +27,12 @@ const Login = () => {
     setFormData((prev) => ({ ...prev, [name]: fieldValue }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const url = process.env.MAIN_URL;
 
-    console.log('url', url)
+    console.log("url", url);
     // Validate all fields
     let formValid = true;
     const newErrors = {};
@@ -44,15 +48,41 @@ const Login = () => {
 
     if (formValid) {
       console.log("Form submitted successfully!", formData);
+      const apiBody = {
+        email: formData.email,
+        password: formData.password,
+      };
+      try {
+        const register = await axios.post(
+          `${"http://localhost:5050"}/owner/login`,
+          apiBody
+        );
+
+        if (register?.data?.success === false)
+          return alert(register?.data?.message);
+
+        const { token, uniqueId } = register?.data?.user;
+
+        localStorage.setItem("isAuth", register?.data?.success);
+        localStorage.setItem("token", token);
+        localStorage.setItem("uniqueId", uniqueId);
+        router.push(`/addPost/${uniqueId}`);
+      } catch (error) {
+        console.log("error", error);
+      }
     } else {
       console.log("Form has errors.");
     }
   };
 
+  const goToSignup = () => {
+    router.push("/signup");
+  };
+
   return (
     <div className="h-full min-h-screen w-full flex justify-center items-center">
-      <div className="border border-white rounded-lg p-4">
-        <h1 className="text-3xl">Login</h1>
+      <div className="border border-white rounded-lg p-4 min-w-96">
+        <h1 className="text-3xl mb-3">Login</h1>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="email">Email*</label>
@@ -109,7 +139,9 @@ const Login = () => {
           </button>
         </form>
         <div className="mt-4">
-          <button className="text-blue-500">Not a user? Sign up</button>
+          <button className="text-blue-500" onClick={goToSignup}>
+            Not a user? Sign up
+          </button>
         </div>
       </div>
     </div>

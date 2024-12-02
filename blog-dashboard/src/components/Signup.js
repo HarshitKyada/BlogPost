@@ -2,19 +2,21 @@
 
 import React, { useState } from "react";
 import { validateField } from "./common/Validation";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 const Login = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    terms: false,
   });
   const [errors, setErrors] = useState({});
 
+  const router = useRouter();
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    const fieldValue = type === "checkbox" ? checked : value;
+    const { name, value } = e.target;
+    const fieldValue = value;
 
     // Validate field
     const fieldErrors = validateField(name, fieldValue);
@@ -24,7 +26,7 @@ const Login = () => {
     setFormData((prev) => ({ ...prev, [name]: fieldValue }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validate all fields
@@ -41,16 +43,28 @@ const Login = () => {
     setErrors(newErrors);
 
     if (formValid) {
-      console.log("Form submitted successfully!", formData);
+      const apiBody = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      };
+      const register = await axios.post(
+        `${"http://localhost:5050"}/owner/signup`,
+        apiBody
+      );
     } else {
       console.log("Form has errors.");
     }
   };
 
+  const goToLogin = () => {
+    router.push("/");
+  };
+
   return (
     <div className="h-full min-h-screen w-full flex justify-center items-center">
-      <div className="border border-white rounded-lg p-4">
-        <h1 className="text-3xl">Sign up</h1>
+      <div className="border border-white rounded-lg p-4 min-w-96">
+        <h1 className="text-3xl mb-3">Sign up</h1>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="name">Name*</label>
@@ -109,7 +123,9 @@ const Login = () => {
           </button>
         </form>
         <div className="mt-4">
-          <button className="text-blue-500">Already a user? Login</button>
+          <button className="text-blue-500" onClick={goToLogin}>
+            Already a user? Login
+          </button>
         </div>
       </div>
     </div>

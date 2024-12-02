@@ -1,230 +1,187 @@
 "use client";
 
 import React, { useState } from "react";
-import axios from "axios";
+import axios from "../axios";
 
-const CreatePost = () => {
-  const [formData, setFormData] = useState({
-    mainTitle: "",
-    mainImage: null,
-    title: "",
-    content: [],
-  });
-  const [currentBlock, setCurrentBlock] = useState({
-    type: "paragraph",
-    value: "",
-  });
-  const [preview, setPreview] = useState(false);
+const CreateBlogPost = () => {
+  const [title, setTitle] = useState("");
+  const [featuredImage, setFeaturedImage] = useState(null);
+  const [blogId, setBlogId] = useState(null);
+  const [contentBlocks, setContentBlocks] = useState([
+    { type: "heading", content: "" },
+  ]);
 
-  const handleBlockChange = (e) => {
-    setCurrentBlock({ ...currentBlock, value: e.target.value });
+  const handleContentChange = (index, key, value) => {
+    const newContentBlocks = [...contentBlocks];
+    newContentBlocks[index][key] = value;
+    setContentBlocks(newContentBlocks);
   };
 
-  const addBlock = () => {
-    if (
-      (currentBlock.type === "image" && currentBlock.value instanceof File) || // Check if the block is an image and has a valid File object
-      (currentBlock.type !== "image" && currentBlock.value.trim()) // For text-based blocks, ensure value is not empty
-    ) {
-      setFormData((prev) => ({
-        ...prev,
-        content: [...prev.content, currentBlock],
-      }));
-      setCurrentBlock({ type: "paragraph", value: "" }); // Reset block to default
-    } else {
-      alert("Please provide valid content for the block.");
+  const handleAddBlock = () => {
+    setContentBlocks([...contentBlocks, { type: "heading", content: "" }]);
+  };
+
+  const handleFileChange = (e, index) => {
+    const file = e.target.files[0];
+    if (file) {
+      const newContentBlocks = [...contentBlocks];
+      newContentBlocks[index].image = file; // Store image file in block
+      setContentBlocks(newContentBlocks);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Ensure all content blocks have content
+    const sanitizedContentBlocks = contentBlocks.map((block) => ({
+      ...block,
+      content: block.content || "", // Default to an empty string if content is missing
+    }));
+
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("featuredImage", featuredImage);
+    formData.append("contentBlocks", JSON.stringify(sanitizedContentBlocks));
+
+    // Attach image files from contentBlocks
+    contentBlocks.forEach((block) => {
+      if (block.type === "image" && block.image) {
+        formData.append("contentImages", block.image);
+      }
+    });
+
     try {
-      const postData = {
-        ...formData,
-        mainImage: formData.mainImage ? formData.mainImage : null,
-      };
-      console.log("postData", postData);
-      //   await axios.post("http://localhost:5000/api/posts", postData);
-      alert("Post submitted successfully!");
-    } catch (err) {
-      console.error("Failed to submit post:", err);
+      const response = await axios.post("/create", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setBlogId(response?.data?.data?._id);
+      alert(`Blog post created successfully`);
+    } catch (error) {
+      console.log("Error creating blog post:", error.response?.data || error);
     }
   };
 
+  const handlePreview = () => {
+    window.open(`/blogPreview/${blogId}`, "_blank");
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-200 flex flex-col items-center py-6">
-      <div className="w-full max-w-4xl bg-gray-800 p-6 rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          Create New Blog Post
-        </h1>
-        <form onSubmit={handleSubmit}>
-          {/* Main Title */}
-          <div className="mb-4">
-            <label htmlFor="mainTitle" className="block text-sm font-medium">
-              Main Title* (Set Once)
-            </label>
-            <input
-              type="text"
-              id="mainTitle"
-              name="mainTitle"
-              value={formData.mainTitle}
-              onChange={(e) =>
-                setFormData({ ...formData, mainTitle: e.target.value })
-              }
-              placeholder="Enter the main title"
-              className="mt-1 block w-full px-4 py-2 border border-gray-700 rounded-md bg-gray-700 text-gray-200 shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              disabled={!!formData.mainTitle}
-            />
-          </div>
+    <div className="bg-gray-900 text-white min-h-screen flex flex-col items-center p-6">
+      <h1 className="text-4xl font-semibold mb-8">Create a New Blog Post</h1>
+      <form
+        onSubmit={handleSubmit}
+        className="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-3xl"
+      >
+        <div className="mb-4">
+          <label className="block text-lg font-medium mb-2">Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+            className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-          {/* Main Image */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium">
-              Main Image* (Set Once)
-            </label>
-            <input
-              type="file"
-              onChange={(e) =>
-                setFormData({ ...formData, mainImage: e.target.files[0] })
-              }
-              className="block w-full text-sm text-gray-400
-                         file:mr-4 file:py-2 file:px-4
-                         file:rounded-md file:border-0
-                         file:bg-blue-50 file:text-blue-700
-                         hover:file:bg-blue-100"
-              disabled={!!formData.mainImage}
-            />
-          </div>
+        <div className="mb-4">
+          <label className="block text-lg font-medium mb-2">
+            Featured Image
+          </label>
+          <input
+            type="file"
+            onChange={(e) => setFeaturedImage(e.target.files[0])}
+            required
+            className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-          {/* Title */}
-          <div className="mb-4">
-            <label htmlFor="title" className="block text-sm font-medium">
-              Title*
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              placeholder="Enter your title"
-              className="mt-1 block w-full px-4 py-2 border border-gray-700 rounded-md bg-gray-700 text-gray-200 shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* Add Content */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium">Content*</label>
+        {contentBlocks.map((block, index) => (
+          <div key={index} className="mb-6">
+            <label className="block text-lg font-medium mb-2">Block Type</label>
             <select
-              value={currentBlock.type}
+              value={block.type}
               onChange={(e) =>
-                setCurrentBlock({ ...currentBlock, type: e.target.value })
+                handleContentChange(index, "type", e.target.value)
               }
-              className="block w-full px-4 py-2 mb-2 border border-gray-700 rounded-md bg-gray-700 text-gray-200"
+              className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="paragraph">Paragraph</option>
               <option value="heading">Heading</option>
+              <option value="paragraph">Paragraph</option>
               <option value="image">Image</option>
+              <option value="affiliate-link">Affiliate Link</option>
             </select>
 
-            {currentBlock.type === "image" ? (
+            <div className="mt-4">
+              <label className="block text-lg font-medium mb-2">Content</label>
               <input
-                type="file"
+                type="text"
+                value={block.content}
                 onChange={(e) =>
-                  setCurrentBlock({ ...currentBlock, value: e.target.files[0] })
+                  handleContentChange(index, "content", e.target.value)
                 }
-                className="block w-full text-sm text-gray-400
-                           file:mr-4 file:py-2 file:px-4
-                           file:rounded-md file:border-0
-                           file:bg-blue-50 file:text-blue-700
-                           hover:file:bg-blue-100"
+                className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            ) : (
-              <textarea
-                value={currentBlock.value}
-                onChange={handleBlockChange}
-                placeholder={`Enter your ${currentBlock.type}`}
-                rows="4"
-                className="mt-1 block w-full px-4 py-2 border border-gray-700 rounded-md bg-gray-700 text-gray-200 shadow-sm"
-              ></textarea>
+            </div>
+
+            {block.type === "image" && (
+              <div className="mt-4">
+                <label className="block text-lg font-medium mb-2">
+                  Upload Image
+                </label>
+                <input
+                  type="file"
+                  onChange={(e) => handleFileChange(e, index)}
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             )}
 
-            <button
-              type="button"
-              onClick={addBlock}
-              className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-            >
-              Add Block
-            </button>
-          </div>
-
-          {/* Preview */}
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={() => setPreview((prev) => !prev)}
-              className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
-            >
-              {preview ? "Hide Preview" : "Show Preview"}
-            </button>
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-          >
-            Submit Post
-          </button>
-        </form>
-      </div>
-
-      {/* Preview Section */}
-      {preview && (
-        <div className="w-full max-w-4xl bg-gray-800 mt-6 p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">Preview</h2>
-          {formData.mainImage && (
-            <img
-              src={URL.createObjectURL(formData.mainImage)}
-              alt="Main"
-              className="mb-4 w-full rounded-md"
-            />
-          )}
-          <h1 className="text-3xl font-bold mb-2">{formData.mainTitle}</h1>
-          <h2 className="text-2xl font-bold mb-2">{formData.title}</h2>
-          {formData.content.map((block, index) => {
-            if (block.type === "heading") {
-              return (
-                <h2 key={index} className="text-2xl font-bold my-2">
-                  {block.value}
-                </h2>
-              );
-            }
-            if (block.type === "paragraph") {
-              return (
-                <p key={index} className="my-2">
-                  {block.value}
-                </p>
-              );
-            }
-            if (block.type === "image" && block.value) {
-              return (
-                <img
-                  key={index}
-                  src={URL.createObjectURL(block.value)}
-                  alt="Block"
-                  className="my-2 w-full rounded-md"
+            {block.type === "affiliate-link" && (
+              <div className="mt-4">
+                <label className="block text-lg font-medium mb-2">
+                  Link URL
+                </label>
+                <input
+                  type="text"
+                  value={block.link || ""}
+                  onChange={(e) =>
+                    handleContentChange(index, "link", e.target.value)
+                  }
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              );
-            }
-            return null;
-          })}
-        </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={handleAddBlock}
+          className="w-full p-3 bg-blue-600 text-white rounded-lg mt-4 mb-6 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Add Content Block
+        </button>
+
+        <button
+          type="submit"
+          className="w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          Submit
+        </button>
+      </form>
+      {blogId && (
+        <button
+          onClick={handlePreview}
+          className="w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          Show preview of blog
+        </button>
       )}
     </div>
   );
 };
 
-export default CreatePost;
+export default CreateBlogPost;
