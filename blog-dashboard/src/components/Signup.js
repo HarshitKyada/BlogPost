@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { validateField } from "./common/Validation";
-import axios from "axios";
 import { useRouter } from "next/navigation";
+import axios from "../axios";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -49,7 +49,7 @@ const Login = () => {
         password: formData.password,
       };
       const register = await axios.post(
-        `${"http://localhost:5050"}/owner/signup`,
+        `owner/signup`,
         apiBody
       );
     } else {

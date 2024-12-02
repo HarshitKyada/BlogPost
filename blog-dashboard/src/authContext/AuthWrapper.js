@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import axios from "../axios";
 
 const AuthWrapper = ({ children }) => {
   const [isAuth, setIsAuth] = useState(null);
@@ -25,7 +25,7 @@ const AuthWrapper = ({ children }) => {
     const isAuthCheck = async () => {
       try {
         const isAuth = await axios.post(
-          `${"http://localhost:5050"}/sync/${id}`,
+          `sync/${id}`,
           {},
           {
             headers: {

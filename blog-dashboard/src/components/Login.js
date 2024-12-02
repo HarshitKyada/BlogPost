@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { validateField } from "./common/Validation";
-import axios from "axios";
+import axios from "../axios";
 import { useRouter } from "next/navigation"; // Import useRouter
 
 const Login = () => {
@@ -54,7 +54,7 @@ const Login = () => {
       };
       try {
         const register = await axios.post(
-          `${"http://localhost:5050"}/owner/login`,
+          `owner/login`,
           apiBody
         );
 
